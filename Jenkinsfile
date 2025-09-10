@@ -13,10 +13,6 @@ pipeline {
         ACR_NAME = "acr${APELLIDO}"
     }
 
-    triggers {
-        pollSCM('H/5 * * * *') // o usar webhook de GitHub para branch main
-    }
-
     stages {
 
         stage('Azure Login') {
@@ -58,16 +54,7 @@ pipeline {
                 '''
             }
         }
-        stage('Build Docker Image') {
-            steps {
-                sh '''
-                  echo ">>> Construyendo imagen $IMAGE"
-                  docker build -t $IMAGE .
-                  docker push $IMAGE
-                '''
-            }
-        }
-
+        
         stage('Deploy to DEV') {
             steps {
                 script {
