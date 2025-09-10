@@ -75,13 +75,13 @@ pipeline {
                     env.IMAGE_NAME = "acr${APELLIDO}.azurecr.io/my-nodejs-app"
                     env.TAG = "${SHORT_SHA}"
                     env.IMAGE = "${env.IMAGE_NAME}:${env.TAG}"
-                    env.APP_NAME = "aca-ms-${APELLIDO}-${ENV}"
                     env.RESOURCE_GROUP = "rg-cicd-terraform-app-${APELLIDO}"
                     env.ACR_NAME = "acr${APELLIDO}"
                 }
 
                 // Ya puedes usarlas directamente en sh
                 sh '''
+                  APP_NAME="aca-ms-${APELLIDO}-${ENV}"
                   echo "IMAGE=$IMAGE"
                   echo "APP_NAME=$APP_NAME"
                   echo "RESOURCE_GROUP=$RESOURCE_GROUP"
@@ -93,7 +93,6 @@ pipeline {
         stage('Configurar ACR credentials para Container App') {
             steps {
                 sh '''
-                  set -a && source $WORKSPACE/.env && set +a
 
                   echo "Configurando credenciales del ACR para la Container App..."
                   ACR_SERVER=$(az acr show --name $ACR_NAME --resource-group $RESOURCE_GROUP --query loginServer --output tsv)
@@ -111,7 +110,6 @@ pipeline {
         stage('Deploy a Azure Container App') {
             steps {
                 sh '''
-                  set -a && source $WORKSPACE/.env && set +a
 
                   echo "Updating Azure Container App $APP_NAME to image $IMAGE"
                   az containerapp update \
@@ -126,7 +124,6 @@ pipeline {
         stage('Imprimir endpoint del Container App') {
             steps {
                 sh '''
-                  set -a && source $WORKSPACE/.env && set +a
 
                   ENDPOINT=$(az containerapp show --name $APP_NAME --resource-group $RESOURCE_GROUP --query properties.configuration.ingress.fqdn -o tsv)
                   echo "Endpoint del Container App: https://$ENDPOINT"
