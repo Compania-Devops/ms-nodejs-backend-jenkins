@@ -38,15 +38,24 @@ pipeline {
         
         stage('Hello world') {
             steps {
-                script { // Declarar más variables de entorno
+                script { 
+                    // Declarar más variables de entorno
                     env.VARIABLE = "demo123"
                 }
-
+                // Primer step
                 sh '''
                   echo ">>> Impresión Hello world"
                   echo "Hello world"
                   echo "Variable declarada en script: $VARIABLE"
                   echo "Variable declarada en environment: $APELLIDO"
+                '''
+                // Step adicional
+                sh '''
+                  echo ">>> Versiones instaladas:"
+                  node -v
+                  npm -v
+                  docker --version
+                  az version
                 '''
             }
         }
