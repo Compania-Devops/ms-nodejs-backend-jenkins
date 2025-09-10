@@ -35,6 +35,7 @@ pipeline {
             steps {
                 sh 'ls -l'
                 sh 'echo "Hello desde Alpine con Node.js 20 + Azure CLI + credenciales seguras en Jenkins!"'
+                sh 'docker build --tag node/imagen .'
             }
         }
     }
