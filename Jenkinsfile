@@ -5,6 +5,11 @@ pipeline {
         }
     }
 
+    environment {
+        APELLIDO = "baraujo"  // lo mismo que en vars.APELLIDO
+        SHORT_SHA = "${env.GIT_COMMIT[0..6]}" // equivalente al steps.short.outputs.short_sha
+    }
+    
     stages {
         stage('Azure Login') {
             steps {
@@ -35,7 +40,30 @@ pipeline {
             steps {
                 sh 'ls -l'
                 sh 'echo "Hello desde Alpine con Node.js 20 + Azure CLI + credenciales seguras en Jenkins!"'
-                sh 'docker build --tag node/imagen .'
+                
+            }
+        }
+
+
+        stage('Docker Login to ACR') {
+            steps {
+                sh '''
+                  echo ">>> Haciendo login en ACR"
+                  az acr login --name acr${APELLIDO}
+                '''
+            }
+        }
+
+
+        stage('Build and Push Docker Image') {
+            steps {
+                sh '''
+                  IMAGE_NAME=acr${APELLIDO}.azurecr.io/my-nodejs-app
+                  TAG=${SHORT_SHA}
+                  echo ">>> Construyendo imagen $IMAGE_NAME:$TAG"
+                  docker build -t $IMAGE_NAME:$TAG .
+                  docker push $IMAGE_NAME:$TAG
+                '''
             }
         }
     }
