@@ -77,11 +77,11 @@ pipeline {
                     env.IMAGE = "${env.IMAGE_NAME}:${env.TAG}"
                     env.RESOURCE_GROUP = "rg-cicd-terraform-app-${APELLIDO}"
                     env.ACR_NAME = "acr${APELLIDO}"
+                    env.APP_NAME = "aca-ms-${APELLIDO}-${ENV}"
                 }
 
                 // Ya puedes usarlas directamente en sh
                 sh '''
-                  APP_NAME="aca-ms-${APELLIDO}-${ENV}"
                   echo "IMAGE=$IMAGE"
                   echo "APP_NAME=$APP_NAME"
                   echo "RESOURCE_GROUP=$RESOURCE_GROUP"
