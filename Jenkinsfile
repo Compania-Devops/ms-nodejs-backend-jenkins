@@ -40,7 +40,7 @@ pipeline {
             steps {
                 sh '''
                   echo ">>> ACR Login"
-                  az acr login --name acr${{ vars.APELLIDO }}
+                  az acr login --name $ACR_NAME
                 '''
             }
         }
