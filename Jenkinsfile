@@ -1,14 +1,9 @@
 pipeline {
     agent {
-        docker {
-            image 'devops-agent:latest'
-        }
+        docker { image 'devops-agent:latest' }
     }
 
     environment {
-        // Variables globales
-        ENV = "dev" 
-        API_PROVIDER_URL = "http://api.com"
         APELLIDO = "baraujo"
         SHORT_SHA = "${env.GIT_COMMIT[0..6]}"
         IMAGE_NAME = "acr${APELLIDO}.azurecr.io/my-nodejs-app"
@@ -16,7 +11,10 @@ pipeline {
         IMAGE = "${IMAGE_NAME}:${TAG}"
         RESOURCE_GROUP = "rg-cicd-terraform-app-${APELLIDO}"
         ACR_NAME = "acr${APELLIDO}"
-        APP_NAME = "aca-ms-${APELLIDO}-${ENV}"
+    }
+
+    triggers {
+        pollSCM('H/5 * * * *') // O webhook de GitHub para main branch
     }
 
     stages {
@@ -30,37 +28,21 @@ pipeline {
                     string(credentialsId: 'azure-subscriptionId', variable: 'AZ_SUBSCRIPTION_ID')
                 ]) {
                     sh '''
-                      echo ">>> Iniciando sesión en Azure CLI..."
+                      echo ">>> Azure login..."
                       az login --service-principal \
                         --username $AZ_CLIENT_ID \
                         --password $AZ_CLIENT_SECRET \
                         --tenant $AZ_TENANT_ID
-
-                      echo ">>> Seleccionando subscripción..."
                       az account set --subscription $AZ_SUBSCRIPTION_ID
-
-                      echo ">>> Sesión activa"
                       az account show
                     '''
                 }
             }
         }
 
-        stage('Hello World') {
+        stage('Build Docker Image') {
             steps {
                 sh '''
-                  ls -l
-                  echo "Hello desde Alpine con Node.js 20 + Azure CLI + credenciales seguras en Jenkins!"
-                '''
-            }
-        }
-
-        stage('Docker Login & Build') {
-            steps {
-                sh '''
-                  echo ">>> Haciendo login en ACR"
-                  az acr login --name $ACR_NAME
-
                   echo ">>> Construyendo imagen $IMAGE"
                   docker build -t $IMAGE .
                   docker push $IMAGE
@@ -68,28 +50,80 @@ pipeline {
             }
         }
 
-        stage('Configurar Container App & Deploy') {
+        stage('Deploy to DEV') {
             steps {
+                script {
+                    env.ENV = "dev"
+                    env.API_PROVIDER_URL = "http://dev.api.com"
+                    env.APP_NAME = "aca-ms-${APELLIDO}-${ENV}"
+                }
                 sh '''
-                  echo "Configurando credenciales del ACR para la Container App..."
-                  ACR_SERVER=$(az acr show --name $ACR_NAME --resource-group $RESOURCE_GROUP --query loginServer --output tsv)
-                  echo "Servidor ACR: $ACR_SERVER"
-
-                  az containerapp registry set \
-                    --name $APP_NAME \
-                    --resource-group $RESOURCE_GROUP \
-                    --server $ACR_SERVER \
-                    --identity system
-
-                  echo "Updating Azure Container App $APP_NAME to image $IMAGE"
+                  echo ">>> Desplegando en $ENV"
                   az containerapp update \
                     --name $APP_NAME \
                     --resource-group $RESOURCE_GROUP \
                     --image $IMAGE \
-                    --set-env-vars ENV=${ENV} API_PROVIDER_URL=${API_PROVIDER_URL}
+                    --set-env-vars ENV=$ENV API_PROVIDER_URL=$API_PROVIDER_URL
+                '''
+            }
+        }
 
-                  ENDPOINT=$(az containerapp show --name $APP_NAME --resource-group $RESOURCE_GROUP --query properties.configuration.ingress.fqdn -o tsv)
-                  echo "Endpoint del Container App: https://$ENDPOINT"
+        stage('Approval QA') {
+            steps {
+                input message: "Aprobar despliegue en QA?"
+            }
+        }
+
+        stage('Deploy to QA') {
+            steps {
+                script {
+                    env.ENV = "qa"
+                    env.API_PROVIDER_URL = "http://qa.api.com"
+                    env.APP_NAME = "aca-ms-${APELLIDO}-${ENV}"
+                }
+                sh '''
+                  echo ">>> Desplegando en $ENV"
+                  az containerapp update \
+                    --name $APP_NAME \
+                    --resource-group $RESOURCE_GROUP \
+                    --image $IMAGE \
+                    --set-env-vars ENV=$ENV API_PROVIDER_URL=$API_PROVIDER_URL
+                '''
+            }
+        }
+
+        stage('Approval PRD') {
+            steps {
+                input message: "Aprobar despliegue en PRD?"
+            }
+        }
+
+        stage('Deploy to PRD') {
+            steps {
+                script {
+                    env.ENV = "prd"
+                    env.API_PROVIDER_URL = "http://prd.api.com"
+                    env.APP_NAME = "aca-ms-${APELLIDO}-${ENV}"
+                }
+                sh '''
+                  echo ">>> Desplegando en $ENV"
+                  az containerapp update \
+                    --name $APP_NAME \
+                    --resource-group $RESOURCE_GROUP \
+                    --image $IMAGE \
+                    --set-env-vars ENV=$ENV API_PROVIDER_URL=$API_PROVIDER_URL
+                '''
+            }
+        }
+
+        stage('Print Endpoint') {
+            steps {
+                sh '''
+                  ENDPOINT=$(az containerapp show \
+                    --name $APP_NAME \
+                    --resource-group $RESOURCE_GROUP \
+                    --query properties.configuration.ingress.fqdn -o tsv)
+                  echo "Endpoint del Container App ($ENV): https://$ENDPOINT"
                 '''
             }
         }
