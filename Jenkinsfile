@@ -13,10 +13,6 @@ pipeline {
         ACR_NAME = "acr${APELLIDO}"
     }
 
-    triggers {
-        pollSCM('H/5 * * * *') // O webhook de GitHub para main branch
-    }
-
     stages {
 
         stage('Azure Login') {
