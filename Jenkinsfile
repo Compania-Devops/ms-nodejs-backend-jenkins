@@ -6,7 +6,9 @@ pipeline {
     }
 
     environment {
-        APELLIDO = "baraujo"  // lo mismo que en vars.APELLIDO
+        ENV = "dev" 
+        API_PROVIDER_URL = "http://api.com"
+        APELLIDO = "baraujo"  // lo mismo que en APELLIDO
         SHORT_SHA = "${env.GIT_COMMIT[0..6]}" // equivalente al steps.short.outputs.short_sha
     }
     
@@ -49,7 +51,7 @@ pipeline {
             steps {
                 sh '''
                   echo ">>> Haciendo login en ACR"
-                  az acr login --name acr${vars.APELLIDO}
+                  az acr login --name acr${APELLIDO}
                 '''
             }
         }
@@ -58,7 +60,7 @@ pipeline {
         stage('Build and Push Docker Image') {
             steps {
                 sh '''
-                  IMAGE_NAME=acr${vars.APELLIDO}.azurecr.io/my-nodejs-app
+                  IMAGE_NAME=acr${APELLIDO}.azurecr.io/my-nodejs-app
                   TAG=${SHORT_SHA}
                   echo ">>> Construyendo imagen $IMAGE_NAME:$TAG"
                   docker build -t $IMAGE_NAME:$TAG .
@@ -70,11 +72,11 @@ pipeline {
         stage('Establecer variables') {
             steps {
                 sh '''
-                  IMAGE_NAME=acr${vars.APELLIDO}.azurecr.io/my-nodejs-app
+                  IMAGE_NAME=acr${APELLIDO}.azurecr.io/my-nodejs-app
                   TAG=${steps.short.outputs.short_sha}
-                  APP_NAME=aca-ms-${vars.APELLIDO}-${vars.ENV}
-                  RESOURCE_GROUP=rg-cicd-terraform-app-${vars.APELLIDO}
-                  ACR_NAME=acr${vars.APELLIDO}
+                  APP_NAME=aca-ms-${APELLIDO}-${ENV}
+                  RESOURCE_GROUP=rg-cicd-terraform-app-${APELLIDO}
+                  ACR_NAME=acr${APELLIDO}
 
                   echo "IMAGE=$IMAGE_NAME:$TAG" >> $WORKSPACE/.env
                   echo "APP_NAME=$APP_NAME" >> $WORKSPACE/.env
@@ -112,7 +114,7 @@ pipeline {
                     --name $APP_NAME \
                     --resource-group $RESOURCE_GROUP \
                     --image $IMAGE \
-                    --set-env-vars ENV=${vars.ENV} API_PROVIDER_URL=${vars.API_PROVIDER_URL}
+                    --set-env-vars ENV=${ENV} API_PROVIDER_URL=${API_PROVIDER_URL}
                 '''
             }
         }
