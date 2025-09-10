@@ -33,7 +33,6 @@ pipeline {
 
         stage('Hello World') {
             steps {
-                sh 'checkout scm'
                 sh 'ls -l'
                 sh 'echo "Hello desde Alpine con Node.js 20 + Azure CLI + credenciales seguras en Jenkins!"'
             }
