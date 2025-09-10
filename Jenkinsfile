@@ -61,7 +61,7 @@ pipeline {
             steps {
                 sh '''
                   IMAGE_NAME=acr${APELLIDO}.azurecr.io/my-nodejs-app
-                  TAG=${SHORT_SHA}
+                  TAG=$SHORT_SHA
                   echo ">>> Construyendo imagen $IMAGE_NAME:$TAG"
                   docker build -t $IMAGE_NAME:$TAG .
                   docker push $IMAGE_NAME:$TAG
@@ -73,7 +73,7 @@ pipeline {
             steps {
                 sh '''
                   IMAGE_NAME=acr${APELLIDO}.azurecr.io/my-nodejs-app
-                  TAG=${steps.short.outputs.short_sha}
+                  TAG=$SHORT_SHA
                   APP_NAME=aca-ms-${APELLIDO}-${ENV}
                   RESOURCE_GROUP=rg-cicd-terraform-app-${APELLIDO}
                   ACR_NAME=acr${APELLIDO}
