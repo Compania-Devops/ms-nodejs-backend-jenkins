@@ -6,13 +6,21 @@ pipeline {
     }
 
     environment {
+        // Variables globales
         ENV = "dev" 
         API_PROVIDER_URL = "http://api.com"
-        APELLIDO = "baraujo"  // lo mismo que en APELLIDO
-        SHORT_SHA = "${env.GIT_COMMIT[0..6]}" // equivalente al steps.short.outputs.short_sha
+        APELLIDO = "baraujo"
+        SHORT_SHA = "${env.GIT_COMMIT[0..6]}"
+        IMAGE_NAME = "acr${APELLIDO}.azurecr.io/my-nodejs-app"
+        TAG = "${SHORT_SHA}"
+        IMAGE = "${IMAGE_NAME}:${TAG}"
+        RESOURCE_GROUP = "rg-cicd-terraform-app-${APELLIDO}"
+        ACR_NAME = "acr${APELLIDO}"
+        APP_NAME = "aca-ms-${APELLIDO}-${ENV}"
     }
-    
+
     stages {
+
         stage('Azure Login') {
             steps {
                 withCredentials([
@@ -26,7 +34,7 @@ pipeline {
                       az login --service-principal \
                         --username $AZ_CLIENT_ID \
                         --password $AZ_CLIENT_SECRET \
-                        --tenant   $AZ_TENANT_ID
+                        --tenant $AZ_TENANT_ID
 
                       echo ">>> Seleccionando subscripción..."
                       az account set --subscription $AZ_SUBSCRIPTION_ID
@@ -40,76 +48,38 @@ pipeline {
 
         stage('Hello World') {
             steps {
-                sh 'ls -l'
-                sh 'echo "Hello desde Alpine con Node.js 20 + Azure CLI + credenciales seguras en Jenkins!"'
-                
+                sh '''
+                  ls -l
+                  echo "Hello desde Alpine con Node.js 20 + Azure CLI + credenciales seguras en Jenkins!"
+                '''
             }
         }
 
-
-        stage('Docker Login to ACR') {
+        stage('Docker Login & Build') {
             steps {
                 sh '''
                   echo ">>> Haciendo login en ACR"
-                  az acr login --name acr${APELLIDO}
+                  az acr login --name $ACR_NAME
+
+                  echo ">>> Construyendo imagen $IMAGE"
+                  docker build -t $IMAGE .
+                  docker push $IMAGE
                 '''
             }
         }
 
-
-        stage('Build and Push Docker Image') {
+        stage('Configurar Container App & Deploy') {
             steps {
                 sh '''
-                  IMAGE_NAME=acr${APELLIDO}.azurecr.io/my-nodejs-app
-                  TAG=$SHORT_SHA
-                  echo ">>> Construyendo imagen $IMAGE_NAME:$TAG"
-                  docker build -t $IMAGE_NAME:$TAG .
-                  docker push $IMAGE_NAME:$TAG
-                '''
-            }
-        }
-        
-        stage('Establecer variables') {
-            steps {
-                script {
-                    env.IMAGE_NAME = "acr${APELLIDO}.azurecr.io/my-nodejs-app"
-                    env.TAG = "${SHORT_SHA}"
-                    env.IMAGE = "${env.IMAGE_NAME}:${env.TAG}"
-                    env.RESOURCE_GROUP = "rg-cicd-terraform-app-${APELLIDO}"
-                    env.ACR_NAME = "acr${APELLIDO}"
-                    env.APP_NAME = "aca-ms-${APELLIDO}-${ENV}"
-                }
-
-                // Ya puedes usarlas directamente en sh
-                sh '''
-                  echo "IMAGE=$IMAGE"
-                  echo "APP_NAME=$APP_NAME"
-                  echo "RESOURCE_GROUP=$RESOURCE_GROUP"
-                  echo "ACR_NAME=$ACR_NAME"
-                '''
-            }
-        }
-
-        stage('Configurar ACR credentials para Container App') {
-            steps {
-                sh '''
-
                   echo "Configurando credenciales del ACR para la Container App..."
                   ACR_SERVER=$(az acr show --name $ACR_NAME --resource-group $RESOURCE_GROUP --query loginServer --output tsv)
                   echo "Servidor ACR: $ACR_SERVER"
-                  
+
                   az containerapp registry set \
                     --name $APP_NAME \
                     --resource-group $RESOURCE_GROUP \
                     --server $ACR_SERVER \
                     --identity system
-                '''
-            }
-        }
-
-        stage('Deploy a Azure Container App') {
-            steps {
-                sh '''
 
                   echo "Updating Azure Container App $APP_NAME to image $IMAGE"
                   az containerapp update \
@@ -117,13 +87,6 @@ pipeline {
                     --resource-group $RESOURCE_GROUP \
                     --image $IMAGE \
                     --set-env-vars ENV=${ENV} API_PROVIDER_URL=${API_PROVIDER_URL}
-                '''
-            }
-        }
-
-        stage('Imprimir endpoint del Container App') {
-            steps {
-                sh '''
 
                   ENDPOINT=$(az containerapp show --name $APP_NAME --resource-group $RESOURCE_GROUP --query properties.configuration.ingress.fqdn -o tsv)
                   echo "Endpoint del Container App: https://$ENDPOINT"
@@ -132,6 +95,3 @@ pipeline {
         }
     }
 }
-
-
-
