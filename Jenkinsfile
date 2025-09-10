@@ -78,6 +78,8 @@ pipeline {
                   RESOURCE_GROUP=rg-cicd-terraform-app-${APELLIDO}
                   ACR_NAME=acr${APELLIDO}
 
+                  echo $ACR_NAME
+
                   echo "IMAGE=$IMAGE_NAME:$TAG" >> $WORKSPACE/.env
                   echo "APP_NAME=$APP_NAME" >> $WORKSPACE/.env
                   echo "RESOURCE_GROUP=$RESOURCE_GROUP" >> $WORKSPACE/.env
