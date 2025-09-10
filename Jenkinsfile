@@ -71,19 +71,21 @@ pipeline {
         
         stage('Establecer variables') {
             steps {
+                script {
+                    env.IMAGE_NAME = "acr${APELLIDO}.azurecr.io/my-nodejs-app"
+                    env.TAG = "${SHORT_SHA}"
+                    env.IMAGE = "${env.IMAGE_NAME}:${env.TAG}"
+                    env.APP_NAME = "aca-ms-${APELLIDO}-${ENV}"
+                    env.RESOURCE_GROUP = "rg-cicd-terraform-app-${APELLIDO}"
+                    env.ACR_NAME = "acr${APELLIDO}"
+                }
+
+                // Ya puedes usarlas directamente en sh
                 sh '''
-                  IMAGE_NAME=acr${APELLIDO}.azurecr.io/my-nodejs-app
-                  TAG=$SHORT_SHA
-                  APP_NAME=aca-ms-${APELLIDO}-${ENV}
-                  RESOURCE_GROUP=rg-cicd-terraform-app-${APELLIDO}
-                  ACR_NAME=acr${APELLIDO}
-
-                  echo $ACR_NAME
-
-                  echo "IMAGE=$IMAGE_NAME:$TAG" >> $WORKSPACE/.env
-                  echo "APP_NAME=$APP_NAME" >> $WORKSPACE/.env
-                  echo "RESOURCE_GROUP=$RESOURCE_GROUP" >> $WORKSPACE/.env
-                  echo "ACR_NAME=$ACR_NAME" >> $WORKSPACE/.env
+                  echo "IMAGE=$IMAGE"
+                  echo "APP_NAME=$APP_NAME"
+                  echo "RESOURCE_GROUP=$RESOURCE_GROUP"
+                  echo "ACR_NAME=$ACR_NAME"
                 '''
             }
         }
