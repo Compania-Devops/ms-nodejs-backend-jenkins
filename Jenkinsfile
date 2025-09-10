@@ -35,7 +35,16 @@ pipeline {
                 }
             }
         }
-
+        
+        stage('ACR Login') {
+            steps {
+                sh '''
+                  echo ">>> ACR Login"
+                  az acr login --name acr${{ vars.APELLIDO }}
+                '''
+            }
+        }
+        
         stage('Build Docker Image') {
             steps {
                 sh '''
