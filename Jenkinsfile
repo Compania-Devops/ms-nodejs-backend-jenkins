@@ -36,6 +36,35 @@ pipeline {
             }
         }
         
+        stage('Instalar dependencias') {
+            steps {
+                sh '''
+                  echo ">>> Instalar dependencias"
+                  npm install
+                '''
+            }
+        }
+
+        
+        stage('Pruebas unitarias') {
+            steps {
+                sh '''
+                  echo ">>> Pruebas unitarias"
+                  npm run test:unit
+                '''
+            }
+        }
+
+        
+        stage('Pruebas de integración') {
+            steps {
+                sh '''
+                  echo ">>> Pruebas de integración"
+                  npm run test:integration
+                '''
+            }
+        }
+        
         stage('ACR Login') {
             steps {
                 sh '''
